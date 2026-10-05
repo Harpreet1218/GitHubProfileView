@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Profile & Repo Finder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            max-width: 600px;
+        }
+        input {
+            padding: 8px;
+            font-size: 16px;
+            width: 250px;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #profile {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+        }
+        #profile img {
+            border-radius: 50%;
+            margin-top: 10px;
+        }
+        #repository {
+            margin-top: 20px;
+        }
+        .repo-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .repo-card a {
+            font-size: 18px;
+            font-weight: bold;
+            color: skyblue;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>GitHub User Finder</h2>
+    <input type="text" id="inputElement" placeholder="Enter GitHub username...">
+    <button id="searchBtn">Search</button>
+
+    <!-- Display areas -->
+    <div id="profile"></div>
+    <div id="repository"></div>
+
+    <script>
+        const inputElement = document.getElementById("inputElement");
+        const searchBtn = document.getElementById("searchBtn");
+        const profile = document.getElementById("profile");
+        const repository = document.getElementById("repository");
+        
+        async function getGithubUserProfileData(username) {
+            profile.innerHTML = "<p>Loading profile...</p>";
+            repository.innerHTML = "";
+            
+            try {
+                const profileResponse = await fetch(`https://api.github.com/users/${username}`);
+                
+                if (!profileResponse.ok) {
+                    throw new Error("User not found");
+                }
+                
+                const profileData = await profileResponse.json();
+            
+                profile.innerHTML = `
+                    <h3>${profileData.login}</h3>
+                    <p>${profileData.bio || "No bio available."}</p>
+                    <img src="${profileData.avatar_url}" alt="${profileData.login}'s avatar" width="120">
+                `;
+        
+                repository.innerHTML = "<p>Loading repositories...</p>";
+                const repoResponse = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=10`);
+                const repoData = await repoResponse.json();
+        
+                repository.innerHTML = `<h3>Recent Repositories:</h3>`;
+        
+                // 3. USE A FOR LOOP TO ITERATE OVER THE REPOS
+                if (repoData.length === 0) {
+                    repository.innerHTML += `<p>This user has no public repositories.</p>`;
+                } else {
+                    let repoHTMLList = "";
+                    
+                    // Here is the for loop processing the API array data
+                    for (let i = 0; i < repoData.length; i++) {
+                        let repo = repoData[i];
+                        repoHTMLList += `
+                            <div class="repo-card">
+                                <a href="${repo.html_url}" target="_blank">${repo.name}</a>
+                                <p>${repo.description || "No description provided."}</p>
+                            </div>
+                        `;
+                    }
+                    
+                    // Append all generated HTML to the repository div at once
+                    repository.innerHTML += repoHTMLList;
+                }
+                
+            } catch (error) {
+                console.error(error);
+                profile.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                repository.innerHTML = "";
+            }
+        }
+        
+        searchBtn.addEventListener("click", async function() {
+            const username = inputElement.value.trim();
+            if (username !== "") {
+                await getGithubUserProfileData(username);
+            }
+        });
+    </script>
+</body>
+</html>
